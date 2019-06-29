@@ -1,20 +1,38 @@
 GCC=g++
-DEST=server
-socure = $(wildcard src/*.cpp src/*/*.cpp)
+TARGET=server
+OBJ_BIN=bin
 INCLUDEDIR = src/includes
-.PHONY: clean
 
-VPATH=src:./includes
+IncludePath = src/includes
 
-all: ${DEST}
+source = $(wildcard src/*.cpp)
+source += $(wildcard src/*/*.cpp)
 
-${DEST}: %.o
-	${GCC} $^ -o ${DEST}
-%.o: ${socure}
-	${GCC}  -c ${socure} -I ${INCLUDEDIR}  -o $@
+# OBJFILE = $(addprefix ${OBJ_BIN}/,$(source:%.cpp=%.o))
+OBJFILE = $(source:%.cpp=%.o)
+
+all: ${TARGET}
+
+${TARGET}: ${OBJFILE}
+	${GCC} $^ -o ${OBJ_BIN}/$@
+
+${OBJFILE}:%.o:%.cpp
+	@echo compile $@ from $^
+	${GCC} $^ -o $@ -I${IncludePath}
+
+include $(source:.cpp=.d)
+
+%.d: %.cpp
+	set -e; rm -f $@; \
+	$(GCC) -MM $(CPPFLAGS) $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
 
 test:
-	@echo ${socure}
+	@echo ${OBJFILE}
+	@echo $(source)
+	@echo $(source:%.cpp=%.o)
 
+.PHONY: clean
 clean:
 	rm -f *.o ${DEST}
