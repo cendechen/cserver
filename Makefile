@@ -1,10 +1,20 @@
 GCC=g++
-DEST=main
+DEST=server
+socure = $(wildcard src/*.cpp src/*/*.cpp)
+INCLUDEDIR = src/includes
+.PHONY: clean
 
-main: main.o
-	${GCC} main.o -o ${DEST}
-main.o: src/main.cpp
-	${GCC}  -c src/main.cpp -o main.o
+VPATH=src:./includes
+
+all: ${DEST}
+
+${DEST}: %.o
+	${GCC} $^ -o ${DEST}
+%.o: ${socure}
+	${GCC}  -c ${socure} -I ${INCLUDEDIR}  -o $@
+
+test:
+	@echo ${socure}
 
 clean:
-	rm -f *.o main
+	rm -f *.o ${DEST}
