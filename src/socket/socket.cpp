@@ -2,20 +2,21 @@
 using namespace std;
 
 Socket::Socket(string host, int port) {
-  fd = socket(AF_INET, SOCK_DGRAM, 0);
+  fd = socket(AF_INET, SOCK_STREAM, 0);
   struct sockaddr_in serAddr;
-  memset(&serAddr, '/0', sizeof(serAddr));
+  memset(&serAddr, '\0', sizeof(serAddr));
 
   serAddr.sin_family = AF_INET;
   serAddr.sin_port = htons(port);
-  inet_aton(host.c_str(), &serAddr.sin_addr.s_addr);
+  inet_aton(host.c_str(), (struct in_addr *)&serAddr.sin_addr.s_addr);
 
-  if(bind(fd, (struct sockaddr *) &serAddr, sizeof(struct sockaddr_in)) == -1) {
+  if(bind(fd, (struct sockaddr *) &serAddr, sizeof(serAddr)) == -1) {
     cerr << "bind socket on " << host << ":" << port << endl;
     exit(1);
   }
-  if (listen(fd, 1000) == -1) {
+  if (listen(fd, 5) == -1) {
     cerr << "listen socket error" << endl;
+    cerr << errno <<" " << strerror(errno) << endl;
     exit(1);
   }
 }
@@ -29,7 +30,7 @@ void Socket::start() {
     struct sockaddr_in clientIp;
     int clientIpSize = sizeof(clientIp);
     int con;
-    if ((con = accept(fd, (struct sockaddr *) & clientIp, &clientIpSize)) == -1) {
+    if ((con = accept(fd, (struct sockaddr *) & clientIp, (socklen_t *) &clientIpSize)) == -1) {
       cerr << "accept client error" << endl;
     }
     if (con) {
@@ -38,5 +39,6 @@ void Socket::start() {
   }
 }
 Socket::~Socket(){
+  cout << "close" << endl;
   close(fd);
 }
