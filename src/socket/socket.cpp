@@ -1,4 +1,6 @@
 #include "socket.h"
+#include "epoll.h"
+#define MAX_EVENT_NUMBER 1024
 using namespace std;
 
 Socket::Socket(string host, int port) {
@@ -24,43 +26,56 @@ Socket::Socket(string host, int port) {
 void Socket::registerCallback (f fn) {
   callback = fn;
 }
+
 // 开启监听和异常处理
 void Socket::start() {
 
-  fd_set read_sets;
-  fd_set copy_read_sets;
-  FD_ZERO(&copy_read_sets);
-  FD_SET(fd, &copy_read_sets);
-  int maxfd = fd;
-
+  epoll_event events[MAX_EVENT_NUMBER];
+  int epollfd = epoll_create(5);
+  addfd(epollfd, fd, true);
 
   while(true) {
     // select 需要监听的都留空
-    read_sets = copy_read_sets;
-
-    struct sockaddr_in clientIp;
-    int clientIpSize = sizeof(clientIp);
-    int con;
-    int count;
-    if((count = select(maxfd+1, &read_sets, NULL, NULL, NULL)) == -1) {
-      cerr << "select error" << endl;
-      exit(1);
+    int ret = epoll_wait(epollfd, events, MAX_EVENT_NUMBER, -1);
+    if (ret < 0) {
+      cerr << "epoll_wait error" << endl;
+      exit(-1);
     }
-    cout<< "select sucess count: " << count << endl;
 
-    for (int i = 0; i <= maxfd ; i++) {
-      if (FD_ISSET(i, &read_sets)) {
-        cout << "socket i: "<< i << endl;
-        if (i == fd) {
-          if ((con = accept(fd, (struct sockaddr *) & clientIp, (socklen_t *) &clientIpSize)) == -1) {
-            cerr << "accept client error" << endl;
-          }
-          maxfd = con > maxfd ? con : maxfd;
-          FD_SET(con, &copy_read_sets);
-        } else {
-          callback(i);
-        }
-      }
+    ltCb(events, ret, epollfd);
+  }
+  close(epollfd);
+}
+
+void Socket::ltCb(epoll_event *events, int number, int epollfd) {
+  for(int i = 0; i< number; i++) {
+    int sockfd = events[i].data.fd;
+    if (sockfd == fd) {
+      struct sockaddr_in clientIp;
+      socklen_t clientIpSize = sizeof(clientIp);
+      int con;
+      con = accept(fd, (struct sockaddr *)&clientIp, &clientIpSize);
+      addfd(epollfd, con, false);
+    } else if(events[i].events & EPOLLIN) {
+      callback(sockfd);
+    } else {
+      cout << "some thing has happen" << endl;
+    }
+  }
+}
+void Socket::etCb(epoll_event *events, int number, int epollfd) {
+  for(int i = 0; i< number; i++) {
+    int sockfd = events[i].data.fd;
+    if (sockfd == fd) {
+      struct sockaddr_in clientIp;
+      socklen_t clientIpSize = sizeof(clientIp);
+      int con;
+      con = accept(fd, (struct sockaddr *)&clientIp, &clientIpSize);
+      addfd(epollfd, con, true);
+    } else if(events[i].events & EPOLLIN) {
+      callback(sockfd);
+    } else {
+      cout << "some thing has happen" << endl;
     }
   }
 }

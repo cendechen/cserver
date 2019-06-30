@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/select.h>
+#include <sys/epoll.h>
 #include <cstring>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -23,5 +24,7 @@ class Socket {
   private:
     int fd;
     f callback;
+    void ltCb(epoll_event *, int, int);
+    void etCb(epoll_event *, int, int);
 };
 #endif
