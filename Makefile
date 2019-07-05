@@ -1,10 +1,33 @@
 GCC=g++
-DEST=main
+TARGET=server
+OBJ_BIN=bin
+INCLUDEDIR = src/includes
 
-main: main.o
-	${GCC} main.o -o ${DEST}
-main.o: src/main.cpp
-	${GCC}  -c src/main.cpp -o main.o
+source = $(wildcard src/*.cpp)
+source += $(wildcard src/*/*.cpp)
 
+# OBJFILE = $(addprefix ${OBJ_BIN}/,$(source:%.cpp=%.o))
+# OBJFILE = $($(notdir ${source}):%.cpp=%.o)
+OBJFILE = $(source:%.cpp=%.o)
+
+all: ${TARGET}
+
+${TARGET}: ${OBJFILE}
+	${GCC} $^ -o ${OBJ_BIN}/$@
+
+include $(source:.cpp=.d)
+
+%.d: %.cpp
+	set -e; rm -f $@; \
+	$(GCC) -MM $(CPPFLAGS) $< > $@.$$$$; \
+	sed 's,\($(notdir $*)\)\.o[ :]*,\$*.o $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
+
+test:
+	@echo ${OBJFILE}
+	@echo $(source)
+	@echo $(source:.cpp=.d)
+
+.PHONY: clean
 clean:
-	rm -f *.o main
+	rm -f *.o ${DEST} ${OBJFILE} $(source:%.cpp=%.d)
