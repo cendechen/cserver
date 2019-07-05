@@ -19,3 +19,10 @@ void addfd(int epollfd, int fd, bool enable_et) {
   epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &event);
   setnonblocking(fd);
 }
+
+void removefd(int epollfd, int fd) {
+  epoll_ctl(epollfd, EPOLL_CTL_DEL, fd, 0);
+  close(fd);
+}
+
+

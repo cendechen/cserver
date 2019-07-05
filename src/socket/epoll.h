@@ -6,4 +6,5 @@
 #include <fcntl.h>
 int setnonblocking(int);
 void addfd(int, int, bool);
+void removefd(int, int);
 #endif
